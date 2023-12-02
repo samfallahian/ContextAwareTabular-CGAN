@@ -1,0 +1,9 @@
+torch
+torchvision
+torchaudio
+pandas
+joblib
+rdt
+wandb
+sdmetrics
+jupyter
