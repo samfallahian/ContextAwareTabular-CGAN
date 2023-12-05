@@ -1,7 +1,7 @@
-from ctgan.data_handler.data_reader import read_csv
-from ctgan.helpers.noise_generator_full import NoiseGenerator
-from ctgan.models.gan_model import Generator
-from ctgan.trainers.gan_sampler import CTGAN
+from data_handler.data_reader import read_csv
+from helpers.noise_generator_full import NoiseGenerator
+from models.gan_model import Generator
+from trainers.gan_sampler import CTGAN
 import torch
 
 if __name__ == '__main__':
