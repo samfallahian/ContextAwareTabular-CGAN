@@ -2,9 +2,9 @@
 
 import argparse
 
-from ctgan.data_handler.data_reader import read_csv
-from ctgan.trainers.gan_cae_train import CTGAN
-from ctgan.helpers.noise_generator_full import NoiseGenerator
+from data_handler.data_reader import read_csv
+from trainers.gan_cae_train import CTGAN
+from helpers.noise_generator_full import NoiseGenerator
 import torch
 
 if __name__ == '__main__':
@@ -33,3 +33,5 @@ if __name__ == '__main__':
 
     ctgan = CTGAN(epochs=10, verbose=True, save_directory='saved_models', noise_generator=noise_generator, device=device, dataset="kdde")
     ctgan.fit(real_data, discrete_columns)
+    synthetic_data = ctgan.sample(20)
+    print(synthetic_data)
