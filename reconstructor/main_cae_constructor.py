@@ -1,7 +1,7 @@
 """CLI."""
 
-from ctgan.data_handler.data_reader import read_csv
-from ctgan.reconstructor.cae_reconstructor import CAEReconstructor
+from data_handler.data_reader import read_csv
+from reconstructor.cae_reconstructor import CAEReconstructor
 import torch
 
 

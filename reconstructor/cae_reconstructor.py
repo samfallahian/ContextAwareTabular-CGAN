@@ -1,7 +1,7 @@
-from ctgan.helpers.base_model import BaseModel, random_state
-from ctgan.data_handler.data_transformer import DataTransformer
-from ctgan.data_handler.data_sampler import DataSampler
-from ctgan.models.cae_model import CAE
+from helpers.base_model import BaseModel, random_state
+from data_handler.data_transformer import DataTransformer
+from data_handler.data_sampler import DataSampler
+from models.cae_model import CAE
 import torch
 import pandas as pd
 import numpy as np
