@@ -1,9 +1,9 @@
 from datetime import datetime
 import os
-from ctgan.helpers.base_model import BaseModel, random_state
-from ctgan.data_handler.data_transformer import DataTransformer
-from ctgan.data_handler.data_sampler import DataSampler
-from ctgan.models.gan_model import Generator, Discriminator
+from helpers.base_model import BaseModel, random_state
+from data_handler.data_transformer import DataTransformer
+from data_handler.data_sampler import DataSampler
+from models.gan_model import Generator, Discriminator
 import torch
 import torch.nn as nn
 import pandas as pd
