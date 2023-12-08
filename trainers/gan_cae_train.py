@@ -2,8 +2,11 @@ from datetime import datetime
 import os
 from helpers.base_model import BaseModel, random_state
 from data_handler.data_transformer import DataTransformer
+from data_handler import embedding_dim
 from data_handler.data_sampler import DataSampler
+from data_handler.classifier_transformer import ClassifierDataTransformer
 from models.gan_model import Generator, Discriminator
+from models.classifier_model import ClassifierModel
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -59,7 +62,7 @@ class CTGAN(BaseModel):
             Defaults to ``True``.
     """
 
-    def __init__(self, noise_generator = None, embedding_dim=128, generator_dim=(256, 256), discriminator_dim=(256, 256),
+    def __init__(self, noise_generator=None, embedding_dim=128, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, device='cpu',
@@ -100,6 +103,7 @@ class CTGAN(BaseModel):
         self._transformer = None
         self._data_sampler = None
         self._generator = None
+        self._classifier = None
         self._noise_generator = noise_generator
 
     @staticmethod
@@ -201,8 +205,19 @@ class CTGAN(BaseModel):
         if invalid_columns:
             raise ValueError(f'Invalid columns found: {invalid_columns}')
 
+    def _genrator_loss(self, i, o):
+        MSE = self.mse(output, target)
+        output_normalized = F.softmax(output, dim=1)
+        target_normalized = F.softmax(target, dim=1)
+        # KLD = torch.sum(target * (torch.log(target) - torch.log(output)))
+        KLD = torch.sum(
+            target_normalized * (torch.log(target_normalized + 1e-10) - torch.log(output_normalized + 1e-10)))
+
+        total_loss = MSE + self.beta * KLD
+        return total_loss
+
     @random_state
-    def fit(self, train_data, discrete_columns=(), epochs=None):
+    def fit(self, train_data, discrete_columns=(), label='label', epochs=None):
         """Fit the CTGAN Synthesizer models to the training data.
 
         Args:
@@ -228,6 +243,9 @@ class CTGAN(BaseModel):
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
 
+        # Classifier features and embedding layers
+        num_feature_no, emb_dims = embedding_dim.cal_dim(train_data, discrete_columns, label)
+
         train_data = self._transformer.transform(train_data)
 
         self._data_sampler = DataSampler(
@@ -238,10 +256,10 @@ class CTGAN(BaseModel):
         data_dim = self._transformer.output_dimensions
         self._embedding_dim = data_dim
 
-        print("_data_sampler: ", self._data_sampler.dim_cond_vec())
-        print("embedding_dim: ", self._embedding_dim + self._data_sampler.dim_cond_vec())
-        print("generator_dim: ", self._generator_dim)
-        print("data_dim: ",data_dim)
+        # print("_data_sampler: ", self._data_sampler.dim_cond_vec())
+        # print("embedding_dim: ", self._embedding_dim + self._data_sampler.dim_cond_vec())
+        # print("generator_dim: ", self._generator_dim)
+        # print("data_dim: ",data_dim)
 
         self._generator = Generator(
             self._embedding_dim + self._data_sampler.dim_cond_vec(),
@@ -249,7 +267,15 @@ class CTGAN(BaseModel):
             data_dim
         ).to(self._device)
 
-        print(self._generator)
+        self._classifier = ClassifierModel(emb_dims, num_feature_no)
+        self._classifier_data_handler = ClassifierDataTransformer(discrete_columns, label)
+
+        # Use BCEWithLogitsLoss for binary classification
+        # For multi-class classification, use CrossEntropyLoss instead:
+        # loss_function = nn.CrossEntropyLoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
+        optimizerC = torch.optim.Adam(self._classifier.parameters(), lr=0.001)
+
 
         discriminator = Discriminator(
             data_dim + self._data_sampler.dim_cond_vec(),
@@ -277,6 +303,7 @@ class CTGAN(BaseModel):
         for i in range(epochs):
             running_loss_d = 0.
             running_loss_g = 0.
+            running_loss_c = 0.
             running_loss_g_sol = 0.
             for id_ in range(steps_per_epoch):
                 running_loss_d_i = 0.
@@ -308,12 +335,15 @@ class CTGAN(BaseModel):
                         np.random.shuffle(perm)
                         real = self._data_sampler.sample_data(
                             self._batch_size, col[perm], opt[perm])
+
                         c2 = c1[perm]
 
                     fake = self._generator(fakez)
                     fakeact = self._apply_activate(fake)
+                    # print(self._transformer.inverse_transform(real))
 
                     real = torch.from_numpy(real.astype('float32')).to(self._device)
+                    # print(self._transformer.inverse_transform(real.detach().cpu().numpy()))
                     # torch.Size([500, 156])
 
                     if c1 is not None:
@@ -328,6 +358,21 @@ class CTGAN(BaseModel):
                         real_cat = real
                         fake_cat = fakeact
 
+                    # print(self._transformer.inverse_transform(real_cat.detach().cpu().numpy()))
+                    # print(self._transformer.inverse_transform(fake_cat.detach().cpu().numpy()))
+                    # print(type(self._transformer.inverse_transform(fake_cat.detach().cpu().numpy())))
+
+                    # classifier_data = self._classifier_data_handler(self._transformer.inverse_transform(real_cat.detach().cpu().numpy()))
+                    # for x_cat_batch, x_num_batch, y_batch in classifier_data:
+                    #     optimizerC.zero_grad(set_to_none=False)
+                    #     outputs_c = self._classifier(x_cat_batch, x_num_batch)
+                    #     loss = self.bce_loss(outputs_c, y_batch)
+                    #     loss.backward()
+                    #     optimizerC.step()
+                    # total_loss += loss.item()
+
+
+
                     y_fake = discriminator(fake_cat)
                     y_real = discriminator(real_cat)
 
@@ -340,6 +385,17 @@ class CTGAN(BaseModel):
                     pen.backward(retain_graph=True)
                     loss_d.backward()
                     optimizerD.step()
+
+                classifier_data = self._classifier_data_handler(
+                    self._transformer.inverse_transform(real_cat.detach().cpu().numpy()))
+                for x_cat_batch, x_num_batch, y_batch in classifier_data:
+                    optimizerC.zero_grad(set_to_none=False)
+                    outputs_c = self._classifier(x_cat_batch, x_num_batch)
+                    loss_c = self.bce_loss(outputs_c, y_batch)
+                    # loss_c.backward()
+                    # optimizerC.step()
+                running_loss_c += loss_c.item()
+
                 running_loss_d_i /= self._discriminator_steps
                 running_loss_d += running_loss_d_i
 
@@ -370,22 +426,27 @@ class CTGAN(BaseModel):
                     cross_entropy = 0
                 else:
                     cross_entropy = self._cond_loss(fake, c1, m1)
-
-                loss_g = -torch.mean(y_fake) + cross_entropy
+                # print(loss_c.item())
+                # print(torch.tensor(loss_c.item(), device=self._device,  requires_grad=True))
+                loss_g = -torch.mean(y_fake) + cross_entropy + torch.tensor(loss_c.item(), device=self._device,  requires_grad=True)
                 running_loss_g += abs((-torch.mean(y_fake) + cross_entropy).item())
                 running_loss_g_sol += abs(torch.mean(y_fake).item())
+                loss_c.backward()
+                optimizerC.step()
 
                 optimizerG.zero_grad(set_to_none=False)
                 loss_g.backward()
                 optimizerG.step()
 
             running_loss_g /= steps_per_epoch
+            running_loss_c /= steps_per_epoch
             running_loss_g_sol /= steps_per_epoch
             running_loss_d /= steps_per_epoch
             if self._verbose:
                 print(f'Epoch {i + 1}, Loss G: {loss_g.detach().cpu(): .4f},'
                       f'Loss D: {loss_d.detach().cpu(): .4f}, Running Loss D: {running_loss_d: .4f}',
                       f'Running Loss G: {running_loss_g: .4f}, Running Loss G C: {running_loss_g_sol: .4f}',
+                      f'Running Loss C: {running_loss_c: .4f}',
                       flush=True)
 
             self.df_result.loc[len(self.df_result.index)] = [i + 1, loss_g.item(), loss_d.item(), running_loss_d,
