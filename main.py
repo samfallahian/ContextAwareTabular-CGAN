@@ -20,6 +20,8 @@ if __name__ == '__main__':
         'income'
     ]
 
+    label = 'income'
+
     real_data = read_csv("dataset/adult.csv")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -32,6 +34,6 @@ if __name__ == '__main__':
                                      device=device)
 
     ctgan = CTGAN(epochs=10, verbose=True, save_directory='saved_models', noise_generator=noise_generator, device=device, dataset="kdde")
-    ctgan.fit(real_data, discrete_columns)
+    ctgan.fit(real_data, discrete_columns, label)
     synthetic_data = ctgan.sample(20)
     print(synthetic_data)
