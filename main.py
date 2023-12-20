@@ -24,11 +24,18 @@ if __name__ == '__main__':
 
     real_data = read_csv("dataset/adult.csv")
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # device= torch.device('cpu')
+    print(device)
 
     input_size_adult = 156
 
-    model_path = '/mnt/d/sources/ca-cgan/ctgan/saved_models/adult/cae/cae_final_saved_model_09262023.pth'
+    # model_path = '/mnt/d/sources/ca-cgan/ctgan/saved_models/adult/cae/cae_final_saved_model_09262023.pth'
+    model_path = '/Users/HesamFallahian/Sources/ContextAwareTabular-CGAN/saved_models/adult/cae/cae_final_saved_model_09262023.pth'
 
     noise_generator = NoiseGenerator(model_path=model_path, input_size=input_size_adult, hidden_size=256, latent_size=64,
                                      device=device)

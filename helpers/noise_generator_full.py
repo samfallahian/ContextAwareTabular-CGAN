@@ -23,7 +23,8 @@ class NoiseGenerator(BaseModel):
 
     def forward(self, n_samples=2, input_data = None, discrete_columns=None):
         self._loaded_model = CAE(self._input_size, self._hidden_size, self._latent_size).to(self._device)
-        self._loaded_model.load_state_dict(torch.load(self._model_path))
+        # self._loaded_model.load_state_dict(torch.load(self._model_path))
+        self._loaded_model.load_state_dict(torch.load(self._model_path, map_location=self._device))
         self._loaded_model.eval()
 
         # tensor = torch.randn(n_samples, 64).to(self._device)

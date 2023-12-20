@@ -106,7 +106,11 @@ class BaseModel:
             )
 
         self.__dict__ = state
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        if torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.set_device(device)
 
     def save(self, path):
@@ -119,7 +123,11 @@ class BaseModel:
     @classmethod
     def load(cls, path):
         """Load the model stored in the passed `path`."""
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        if torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model = torch.load(path, map_location=torch.device(device))
         # model.set_device(device)
         return model

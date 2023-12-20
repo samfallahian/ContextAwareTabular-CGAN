@@ -9,6 +9,7 @@ from models.gan_model import Generator, Discriminator
 from models.classifier_model import ClassifierModel
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import warnings
@@ -205,7 +206,7 @@ class CTGAN(BaseModel):
         if invalid_columns:
             raise ValueError(f'Invalid columns found: {invalid_columns}')
 
-    def _genrator_loss(self, i, o):
+    def _genrator_loss(self, output, target):
         MSE = self.mse(output, target)
         output_normalized = F.softmax(output, dim=1)
         target_normalized = F.softmax(target, dim=1)
