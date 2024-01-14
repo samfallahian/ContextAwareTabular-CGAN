@@ -5,5 +5,3 @@ pandas
 joblib
 rdt
 wandb
-sdmetrics
-jupyter
