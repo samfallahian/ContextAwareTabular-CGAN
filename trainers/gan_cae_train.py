@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 from helpers.base_model import BaseModel, random_state
-from data_handler.data_transformer import DataTransformer
 from data_handler import embedding_dim
 from data_handler.data_sampler import DataSampler
 from data_handler.classifier_transformer import ClassifierDataTransformer
@@ -63,16 +62,15 @@ class CTGAN(BaseModel):
             Defaults to ``True``.
     """
 
-    def __init__(self, noise_generator=None, embedding_dim=128, generator_dim=(256, 256), discriminator_dim=(256, 256),
+    def __init__(self, transformer, data_dim, noise_generator=None, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, device='cpu',
-                 save_directory=None, save_interval=50, dataset=None):
+                 save_directory='saved_models', save_interval=50, dataset=None):
 
         assert batch_size % 2 == 0
-
-        # self._embedding_dim = embedding_dim
         self._embedding_dim = None
+        self._data_dim = data_dim
         self._generator_dim = generator_dim
         self._discriminator_dim = discriminator_dim
 
@@ -94,14 +92,14 @@ class CTGAN(BaseModel):
         self._device = torch.device(device)
 
         self.save_interval = save_interval
-        self.save_directory = save_directory
+        self.save_directory = save_directory+"/gan/"+dataset
         self.dataset = dataset
         if save_directory:
             os.makedirs(self.save_directory, exist_ok=True)  # Create the save directory if it doesn't exist
         self.df_result = pd.DataFrame(
             columns=["epoch", "g_loss", "d_loss", "g_running_loss", "d_running_loss", "time"])
 
-        self._transformer = None
+        self._transformer = transformer
         self._data_sampler = None
         self._generator = None
         self._classifier = None
@@ -241,9 +239,6 @@ class CTGAN(BaseModel):
                 DeprecationWarning
             )
 
-        self._transformer = DataTransformer()
-        self._transformer.fit(train_data, discrete_columns)
-
         # Classifier features and embedding layers
         num_feature_no, emb_dims = embedding_dim.cal_dim(train_data, discrete_columns, label)
 
@@ -254,18 +249,12 @@ class CTGAN(BaseModel):
             self._transformer.output_info_list,
             self._log_frequency)
 
-        data_dim = self._transformer.output_dimensions
-        self._embedding_dim = data_dim
-
-        # print("_data_sampler: ", self._data_sampler.dim_cond_vec())
-        # print("embedding_dim: ", self._embedding_dim + self._data_sampler.dim_cond_vec())
-        # print("generator_dim: ", self._generator_dim)
-        # print("data_dim: ",data_dim)
+        self._embedding_dim = self._data_dim
 
         self._generator = Generator(
             self._embedding_dim + self._data_sampler.dim_cond_vec(),
             self._generator_dim,
-            data_dim
+            self._data_dim
         ).to(self._device)
 
         self._classifier = ClassifierModel(emb_dims, num_feature_no)
@@ -279,7 +268,7 @@ class CTGAN(BaseModel):
 
 
         discriminator = Discriminator(
-            data_dim + self._data_sampler.dim_cond_vec(),
+            self._data_dim + self._data_sampler.dim_cond_vec(),
             self._discriminator_dim,
             pac=self.pac
         ).to(self._device)
@@ -326,11 +315,9 @@ class CTGAN(BaseModel):
                         c1, m1, col, opt = condvec
                         c1 = torch.from_numpy(c1).to(self._device)
 
-                        # c1 torch.Size([500, 104])
                         # number of category
                         m1 = torch.from_numpy(m1).to(self._device)
                         fakez = torch.cat([fakez, c1], dim=1)
-                        # torch.Size([500, 232])
 
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)
@@ -341,27 +328,15 @@ class CTGAN(BaseModel):
 
                     fake = self._generator(fakez)
                     fakeact = self._apply_activate(fake)
-                    # print(self._transformer.inverse_transform(real))
 
                     real = torch.from_numpy(real.astype('float32')).to(self._device)
-                    # print(self._transformer.inverse_transform(real.detach().cpu().numpy()))
-                    # torch.Size([500, 156])
 
                     if c1 is not None:
                         fake_cat = torch.cat([fakeact, c1], dim=1)
                         real_cat = torch.cat([real, c2], dim=1)
-                        # fake_cat: torch.Size([500, 260])
-                        # real_cat: torch.Size([500, 260])
-                        # fakeact: torch.Size([500, 156])
-                        # c1: torch.Size([500, 104])
-                        # c2: torch.Size([500, 104])
                     else:
                         real_cat = real
                         fake_cat = fakeact
-
-                    # print(self._transformer.inverse_transform(real_cat.detach().cpu().numpy()))
-                    # print(self._transformer.inverse_transform(fake_cat.detach().cpu().numpy()))
-                    # print(type(self._transformer.inverse_transform(fake_cat.detach().cpu().numpy())))
 
                     # classifier_data = self._classifier_data_handler(self._transformer.inverse_transform(real_cat.detach().cpu().numpy()))
                     # for x_cat_batch, x_num_batch, y_batch in classifier_data:
@@ -427,8 +402,6 @@ class CTGAN(BaseModel):
                     cross_entropy = 0
                 else:
                     cross_entropy = self._cond_loss(fake, c1, m1)
-                # print(loss_c.item())
-                # print(torch.tensor(loss_c.item(), device=self._device,  requires_grad=True))
                 loss_g = -torch.mean(y_fake) + cross_entropy + torch.tensor(loss_c.item(), device=self._device,  requires_grad=True)
                 running_loss_g += abs((-torch.mean(y_fake) + cross_entropy).item())
                 running_loss_g_sol += abs(torch.mean(y_fake).item())
@@ -453,17 +426,17 @@ class CTGAN(BaseModel):
             self.df_result.loc[len(self.df_result.index)] = [i + 1, loss_g.item(), loss_d.item(), running_loss_d,
                                                              running_loss_g, datetime.now()]
 
-            if (i + 1) % self.save_interval == 0:
-                torch.save(self._generator.state_dict(), os.path.join(self.save_directory,
-                                                                      f"generator_cae_model_checkpoint_{i + 1}_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
+            # if (i + 1) % self.save_interval == 0:
+            #     torch.save(self._generator.state_dict(), os.path.join(self.save_directory,
+            #                                                           f"generator_checkpoint_{i + 1}_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
 
         if self.save_directory:
             # Save the final trained model
             torch.save(self._generator.state_dict(), os.path.join(self.save_directory,
-                                                                  f"generator_cae_final_saved_model_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
+                                                                  f"generator_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
             # Save training result
             self.df_result.to_csv(os.path.join(self.save_directory,
-                                               f"gan_cae_logs_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}.csv"),
+                                               f"gan_logs_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}.csv"),
                                   index=False)
 
     @random_state

@@ -20,7 +20,7 @@ if __name__ == '__main__':
         'income'
     ]
 
-    real_data = read_csv("dataset/adult.csv")
+    real_data = read_csv("dataset/adults/adult.csv")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
