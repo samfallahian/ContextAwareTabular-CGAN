@@ -2,45 +2,32 @@
 
 import argparse
 
-from data_handler.data_reader import read_csv
+from data_handler.data_reader import read_csv, get_discrete_columns, get_device, get_model_path
+from data_handler.data_transformer import DataTransformer
 from trainers.gan_cae_train import CTGAN
 from helpers.noise_generator_full import NoiseGenerator
-import torch
+
+DATA_PATH = "dataset/adult/adult.csv"
+METADATA_PATH = "dataset/adult/meta_data.json"
+DEVICE = get_device()
+DATASET_NAME = "adult"
+PRETRAINED_CAE = "cae_final_saved_model_09262023"
+LABEL = 'income'
 
 if __name__ == '__main__':
-    discrete_columns = [
-        'workclass',
-        'education',
-        'marital-status',
-        'occupation',
-        'relationship',
-        'race',
-        'sex',
-        'native-country',
-        'income'
-    ]
 
-    label = 'income'
+    discrete_columns = get_discrete_columns(METADATA_PATH)
+    real_data = read_csv(DATA_PATH)
+    cae_model_path = get_model_path("cae", DATASET_NAME, PRETRAINED_CAE)
 
-    real_data = read_csv("dataset/adult.csv")
+    transformer = DataTransformer()
+    transformer.fit(real_data, discrete_columns)
+    data_dim = transformer.output_dimensions
 
-    if torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    noise_generator = NoiseGenerator(model_path=cae_model_path, input_size=data_dim, device=DEVICE)
 
-    # device= torch.device('cpu')
-    print(device)
-
-    input_size_adult = 156
-
-    # model_path = '/mnt/d/sources/ca-cgan/ctgan/saved_models/adult/cae/cae_final_saved_model_09262023.pth'
-    model_path = '/Users/HesamFallahian/Sources/ContextAwareTabular-CGAN/saved_models/adult/cae/cae_final_saved_model_09262023.pth'
-
-    noise_generator = NoiseGenerator(model_path=model_path, input_size=input_size_adult, hidden_size=256, latent_size=64,
-                                     device=device)
-
-    ctgan = CTGAN(epochs=10, verbose=True, save_directory='saved_models', noise_generator=noise_generator, device=device, dataset="kdde")
-    ctgan.fit(real_data, discrete_columns, label)
+    ctgan = CTGAN(transformer=transformer, data_dim=data_dim, epochs=5, verbose=True,
+                  noise_generator=noise_generator, device=DEVICE, dataset=DATASET_NAME)
+    ctgan.fit(real_data, discrete_columns, LABEL)
     synthetic_data = ctgan.sample(20)
     print(synthetic_data)
