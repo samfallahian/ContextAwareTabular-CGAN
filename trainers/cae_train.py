@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 from helpers.base_model import BaseModel, random_state
-from data_handler.data_transformer import DataTransformer
+# from data_handler.data_transformer import DataTransformer
 from data_handler.data_sampler import DataSampler
 from models.cae_model import CAE
 import torch
@@ -47,11 +47,14 @@ class CAETrain(BaseModel):
             Defaults to ``True``.
     """
 
-    def __init__(self, hidden_size=256, latent_size=64,
+    def __init__(self, transformer, data_dim, hidden_size=256, latent_size=64,
                  lr=1e-3, optim_decay=1e-6, batch_size=500, contractive_weight=1e-4,
-                 log_frequency=True, verbose=False, epochs=300, device='cpu', save_directory=None, dataset= None):
+                 log_frequency=True, verbose=False, epochs=300, device='cpu', save_directory='saved_models',
+                 dataset=None):
 
         assert batch_size % 2 == 0
+
+        self._data_dim = data_dim
 
         self._hidden_size = hidden_size
         self._latent_size = latent_size
@@ -70,14 +73,14 @@ class CAETrain(BaseModel):
 
         self._device = torch.device(device)
 
-        self.save_directory = save_directory
+        self.save_directory = save_directory+"/cae/"+dataset
         self.dataset = dataset
         if save_directory:
             os.makedirs(self.save_directory, exist_ok=True)  # Create the save directory if it doesn't exist
         self.df_result = pd.DataFrame(
             columns=["epoch", "batch", "loss", "time"])
 
-        self._transformer = None
+        self._transformer = transformer
         self._data_sampler = None
 
     def _validate_discrete_columns(self, train_data, discrete_columns):
@@ -120,11 +123,7 @@ class CAETrain(BaseModel):
         """
         self._validate_discrete_columns(train_data, discrete_columns)
 
-        self._transformer = DataTransformer()
-        self._transformer.fit(train_data, discrete_columns)
-
         train_data = self._transformer.transform(train_data)
-
 
         self._data_sampler = DataSampler(
             train_data,
@@ -132,7 +131,6 @@ class CAETrain(BaseModel):
             self._log_frequency)
 
         data_dim = self._transformer.output_dimensions
-        print("data_dim", data_dim)
 
         cae_model = CAE(data_dim, self._hidden_size, self._latent_size).to(self._device)
 
@@ -166,8 +164,6 @@ class CAETrain(BaseModel):
 
                 # Forward pass
                 latent, outputs = cae_model(inputs)
-                # print(outputs[0].detach().numpy())
-
 
                 # Compute reconstruction loss and the jacobian penalty
                 recon_loss = criterion(outputs, inputs)
@@ -187,11 +183,10 @@ class CAETrain(BaseModel):
                 print(f'Epoch {i + 1}, Loss: {running_loss: .4f},',
                       flush=True)
 
-
         if self.save_directory:
             # Save the final trained model
             torch.save(cae_model.state_dict(), os.path.join(self.save_directory,
-                                                            f"cae_final_saved_model_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}.pth"))
+                                                            f"cae_{self.dataset}_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
             # Save training result
             self.df_result.to_csv(os.path.join(self.save_directory,
                                                f"cae_logs_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}.csv"),
