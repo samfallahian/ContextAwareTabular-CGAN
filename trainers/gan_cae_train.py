@@ -304,9 +304,6 @@ class CTGAN(BaseModel):
                     else:
                         fakez = self._noise_generator.forward(n_samples=self._batch_size).to(self._device)
 
-                    # print(fakez[0])
-                    # torch.Size([500, 128])
-
                     condvec = self._data_sampler.sample_condvec(self._batch_size)
                     if condvec is None:
                         c1, m1, col, opt = None, None, None, None
@@ -346,8 +343,6 @@ class CTGAN(BaseModel):
                     #     loss.backward()
                     #     optimizerC.step()
                     # total_loss += loss.item()
-
-
 
                     y_fake = discriminator(fake_cat)
                     y_real = discriminator(real_cat)
