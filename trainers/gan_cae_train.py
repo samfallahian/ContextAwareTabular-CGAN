@@ -16,52 +16,6 @@ from torch import optim
 
 
 class CTGAN(BaseModel):
-    """Conditional Table GAN Synthesizer.
-
-    This is the core class of the CTGAN project, where the different components
-    are orchestrated together.
-    For more details about the process, please check the [Modeling Tabular data using
-    Conditional GAN](https://arxiv.org/abs/1907.00503) paper.
-
-    Args:
-        embedding_dim (int):
-            Size of the random sample passed to the Generator. Defaults to 128.
-        generator_dim (tuple or list of ints):
-            Size of the output samples for each one of the Residuals. A Residual Layer
-            will be created for each one of the values provided. Defaults to (256, 256).
-        discriminator_dim (tuple or list of ints):
-            Size of the output samples for each one of the Discriminator Layers. A Linear Layer
-            will be created for each one of the values provided. Defaults to (256, 256).
-        generator_lr (float):
-            Learning rate for the generator. Defaults to 2e-4.
-        generator_decay (float):
-            Generator weight decay for the Adam Optimizer. Defaults to 1e-6.
-        discriminator_lr (float):
-            Learning rate for the discriminator. Defaults to 2e-4.
-        discriminator_decay (float):
-            Discriminator weight decay for the Adam Optimizer. Defaults to 1e-6.
-        batch_size (int):
-            Number of data samples to process in each step.
-        discriminator_steps (int):
-            Number of discriminator updates to do for each generator update.
-            From the WGAN paper: https://arxiv.org/abs/1701.07875. WGAN paper
-            default is 5. Default used is 1 to match original CTGAN implementation.
-        log_frequency (boolean):
-            Whether to use log frequency of categorical levels in conditional65803
-            sampling. Defaults to ``True``.
-        verbose (boolean):
-            Whether to have print statements for progress results. Defaults to ``False``.
-        epochs (int):
-            Number of training epochs. Defaults to 300.
-        pac (int):
-            Number of samples to group together when applying the discriminator.
-            Defaults to 10.
-        cuda (bool):
-            Whether to attempt to use cuda for GPU computation.
-            If this is False or CUDA is not available, CPU will be used.
-            Defaults to ``True``.
-    """
-
     def __init__(self, transformer, data_dim, noise_generator=None, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
@@ -216,7 +170,7 @@ class CTGAN(BaseModel):
         return total_loss
 
     @random_state
-    def fit(self, train_data, discrete_columns=(), label='label', epochs=None):
+    def fit(self, train_data, discrete_columns=(), label='label'):
         """Fit the CTGAN Synthesizer models to the training data.
 
         Args:
@@ -229,15 +183,6 @@ class CTGAN(BaseModel):
                 a ``pandas.DataFrame``, this list should contain the column names.
         """
         self._validate_discrete_columns(train_data, discrete_columns)
-
-        if epochs is None:
-            epochs = self._epochs
-        else:
-            warnings.warn(
-                ('`epochs` argument in `fit` method has been deprecated and will be removed '
-                 'in a future version. Please pass `epochs` to the constructor instead'),
-                DeprecationWarning
-            )
 
         # Classifier features and embedding layers
         num_feature_no, emb_dims = embedding_dim.cal_dim(train_data, discrete_columns, label)
@@ -290,7 +235,7 @@ class CTGAN(BaseModel):
 
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
 
-        for i in range(epochs):
+        for i in range(self._epochs):
             running_loss_d = 0.
             running_loss_g = 0.
             running_loss_c = 0.
