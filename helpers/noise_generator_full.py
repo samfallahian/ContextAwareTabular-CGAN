@@ -12,6 +12,7 @@ class NoiseGenerator(BaseModel):
     """
 
     def __init__(self, model_path, input_size, hidden_size=256, latent_size=64, device='cpu'):
+        super(NoiseGenerator, self).__init__()
         self._input_size = input_size
         self._hidden_size = hidden_size
         self._latent_size = latent_size

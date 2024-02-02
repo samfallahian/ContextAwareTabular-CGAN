@@ -1,5 +1,5 @@
 import contextlib
-
+import torch.nn as nn
 import numpy as np
 import torch
 
@@ -54,7 +54,7 @@ def random_state(function):
     return wrapper
 
 
-class BaseModel:
+class BaseModel(nn.Module):
     """Base class for all default synthesizers of ``CTGAN``."""
 
     random_states = None
