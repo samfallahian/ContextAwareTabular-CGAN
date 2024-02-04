@@ -4,7 +4,8 @@ import pandas as pd
 def cal_dim(df, categorical_columns, label):
     X = df.drop(label, axis=1)
     numerical_columns = [col for col in df.columns if col not in categorical_columns]
-    categorical_columns.remove(label)
+    # categorical_columns.remove(label) # single label
+    categorical_columns = [col for col in categorical_columns if col not in label]
     X_num = X[numerical_columns]
     # Calculate the number of unique values per categorical column
     cat_dims = [int(X[col].nunique()) for col in categorical_columns]
