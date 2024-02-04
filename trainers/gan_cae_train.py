@@ -21,6 +21,7 @@ class CTGAN(BaseModel):
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, device='cpu',
                  save_directory='saved_models', save_interval=50, dataset=None):
+        super(CTGAN, self).__init__()
 
         assert batch_size % 2 == 0
         self._embedding_dim = None
