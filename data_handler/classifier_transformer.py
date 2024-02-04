@@ -7,14 +7,16 @@ from torch.utils.data import DataLoader, TensorDataset
 class ClassifierDataTransformer(nn.Module):
     def __init__(self, categorical_columns, label):
         super(ClassifierDataTransformer, self).__init__()
-        self.categorical_columns = categorical_columns
+        # self.categorical_columns = categorical_columns
+        self.categorical_columns = [col for col in categorical_columns if col not in label]
         self.label = label
 
     def forward(self, data):
         # Split features and target label
         X = data.drop(self.label, axis=1)
         y = data[self.label]
-        numerical_columns = [col for col in data.columns if col not in self.categorical_columns + [self.label]]
+        # numerical_columns = [col for col in data.columns if col not in self.categorical_columns + [self.label]]
+        numerical_columns = [col for col in data.columns if col not in self.categorical_columns + self.label]
         # Separate categorical and numerical data
         X_num = X[numerical_columns]
 
@@ -32,7 +34,8 @@ class ClassifierDataTransformer(nn.Module):
 
         # Convert the target variable to a tensor
         label_encoder = LabelEncoder()
-        y = label_encoder.fit_transform(y.ravel())
+        # y = label_encoder.fit_transform(y.ravel())
+        y = label_encoder.fit_transform(y.values.ravel())
         y = torch.tensor(y, dtype=torch.float32)
         y = y.unsqueeze(1)  # Add an extra dimension
 
