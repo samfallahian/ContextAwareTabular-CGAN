@@ -8,15 +8,16 @@ from trainers.gan_sampler import CTGAN
 from helpers.noise_generator_full import NoiseGenerator
 import torch
 
-TRAIN_TYPE = "gan"  # cae or gan or vanilla
+TRAIN_TYPE = "vanilla"  # gan or vanilla
 DATA_PATH = "dataset_test/adult/adult.csv"
 METADATA_PATH = "dataset_test/adult/meta_data.json"
 DEVICE = get_device()
 DATASET_NAME = "adult"
 PRETRAINED_CAE = "cae_adult_09262023_mps"
-# PRETRAINED_GAN = "vanilla_generator_adult_01282024_mps"
-PRETRAINED_GAN = "generator_adult_02012024_mps"
+PRETRAINED_GAN = "vanilla_generator_adult_01282024_mps"
+# PRETRAINED_GAN = "generator_adult_02012024_mps"
 LABEL = ['income']
+SAMPLES = 3000
 
 if __name__ == '__main__':
     # parser = argparse.ArgumentParser(description='CLI')
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     ctgan = CTGAN(transformer=transformer, data_dim=data_dim, verbose=True, generator_model=gan_model_path,
                   noise_generator=noise_generator, device=DEVICE, dataset=DATASET_NAME)
     ctgan.fit(real_data)
-    synthetic_data = ctgan.sample(50)
-    save_csv(synthetic_data, DATASET_NAME, TRAIN_TYPE)
+    synthetic_data = ctgan.sample(SAMPLES)
+    save_csv(synthetic_data, DATASET_NAME, TRAIN_TYPE, SAMPLES)
 
     print(synthetic_data.head(20))
