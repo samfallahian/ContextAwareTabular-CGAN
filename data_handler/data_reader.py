@@ -10,9 +10,9 @@ def read_csv(csv_filename, header=True):
     return data
 
 
-def save_csv(df, dataset, model):
+def save_csv(df, dataset, model, samples):
     """Save a csv file."""
-    df.to_csv(f"results/{dataset}_{model}.csv", index=False)
+    df.to_csv(f"results/{dataset}_{model}_{samples}.csv", index=False)
 
 
 def get_discrete_columns(json_path):
