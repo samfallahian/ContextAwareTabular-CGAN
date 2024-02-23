@@ -9,6 +9,7 @@ import torch.nn as nn
 import pandas as pd
 import numpy as np
 from torch import optim
+import torch.nn.functional as F
 
 
 class CAETrain(BaseModel):
@@ -47,11 +48,11 @@ class CAETrain(BaseModel):
             Defaults to ``True``.
     """
 
-    def __init__(self, transformer, data_dim, hidden_size=256, latent_size=64,
-                 lr=1e-3, optim_decay=1e-6, batch_size=500, contractive_weight=1e-4,
-                 log_frequency=True, verbose=False, epochs=300, device='cpu', save_directory='saved_models',
-                 dataset=None):
+    def __init__(self, transformer, data_dim, hidden_size=256, latent_size=64, lr=1e-3, optim_decay=1e-6,
+                 batch_size=500, contractive_weight=0.25, beta=0.25, log_frequency=True, verbose=False, epochs=300,
+                 device='cpu', save_directory='saved_models', dataset=None, *args, **kwargs):
 
+        super().__init__(*args, **kwargs)
         assert batch_size % 2 == 0
 
         self._data_dim = data_dim
@@ -67,6 +68,7 @@ class CAETrain(BaseModel):
         self._verbose = verbose
         self._epochs = epochs
         self.contractive_weight = contractive_weight
+        self._beta = beta
 
         if self._verbose:
             print("Device: ", device)
@@ -82,6 +84,18 @@ class CAETrain(BaseModel):
 
         self._transformer = transformer
         self._data_sampler = None
+
+    def _loss_fn(self, output, target):
+        mse_loss = nn.MSELoss()
+        MSE = mse_loss(output, target)
+        output_normalized = F.softmax(output, dim=1)
+        target_normalized = F.softmax(target, dim=1)
+        # KLD = torch.sum(target * (torch.log(target) - torch.log(output)))
+        KLD = torch.sum(
+            target_normalized * (torch.log(target_normalized + 1e-10) - torch.log(output_normalized + 1e-10)))
+
+        total_loss = MSE + self._beta * KLD
+        return total_loss
 
     def _validate_discrete_columns(self, train_data, discrete_columns):
         """Check whether ``discrete_columns`` exists in ``train_data``.
@@ -139,7 +153,7 @@ class CAETrain(BaseModel):
             weight_decay=self._optim_decay
         )
 
-        criterion = nn.MSELoss()
+        # criterion = nn.MSELoss()
 
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
         for i in range(self._epochs):
@@ -166,7 +180,7 @@ class CAETrain(BaseModel):
                 latent, outputs = cae_model(inputs)
 
                 # Compute reconstruction loss and the jacobian penalty
-                recon_loss = criterion(outputs, inputs)
+                recon_loss = self._loss_fn(outputs, inputs)
                 jacobian_loss = cae_model.jacobian_penalty(inputs, latent)  # Use latent representation for penalty
                 loss = recon_loss + self.contractive_weight * jacobian_loss
 
