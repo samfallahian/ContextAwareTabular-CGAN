@@ -10,7 +10,33 @@ The generation of synthetic tabular data has numerous applications, ranging from
 * scikit-learn
 ### Usage
 Training:  
-`python main.py --dataset=Adult --cae_model=MODEL_PATH --train`  
+`python main.py --train_type cae_gan --data_path dataset_test/adult/adult.csv --metadata_path dataset_test/adult/meta_data.json --dataset_name adult --labels "['year','month']"`  
+
 For parallel computing:  
 `parallel -q :::: commands.txt`
 
+Run Screen: 
+* `sudo apt-get install screen`
+* `sudo apt-get install tmux`  
+
+Start a new session:  
+* `screen -S mysession`
+* `tmux new -s mysession`  
+
+You can detach from the session and leave it running in the background by pressing Ctrl-a d in screen or Ctrl-b d in tmux  
+You can later reattach to the session with:  
+* `screen -r mysession`
+* `tmux attach -t mysession`
+
+The contents of these log files can be followed in real-time using:  
+* `tail -f output*.log`  
+
+List all sessions with:  
+* `screen -ls`
+* `tmux ls`  
+
+Once inside the session, you can terminate it by executing the exit command, or pressing Ctrl-D.  
+
+Another way to kill a session without attaching to it:  
+* `screen -X -S [session_name] quit`
+* `tmux kill-session -t [session_name]`
