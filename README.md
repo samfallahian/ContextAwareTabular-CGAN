@@ -10,5 +10,7 @@ The generation of synthetic tabular data has numerous applications, ranging from
 * scikit-learn
 ### Usage
 Training:  
-`python main.py --dataset=Adult --cae_model=MODEL_PATH --train`
+`python main.py --dataset=Adult --cae_model=MODEL_PATH --train`  
+For parallel computing:  
+`parallel -q :::: commands.txt`
 
