@@ -1,2 +1,2 @@
-python ~/sources/ContextAwareTabular-CGAN/main.py --train_type cae --data_path dataset_test/AirQuality/AirQuality_final.csv --metadata_path dataset_test/AirQuality/meta_data.json --dataset_name AirQuality --labels "['year','month']" > output1.log
-python ~/sources/ContextAwareTabular-CGAN/main.py --device cpu --epochs 200 > output2.log
+python /home/admin/sources/ContextAwareTabular-CGAN/main.py --train_type cae --data_path dataset_test/AirQuality/AirQuality_final.csv --metadata_path dataset_test/AirQuality/meta_data.json --dataset_name AirQuality --labels "['year','month']" > output1.log
+python /home/admin/sources/ContextAwareTabular-CGAN/main.py --device cpu --epochs 200 > output2.log
