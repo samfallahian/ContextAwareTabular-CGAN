@@ -18,6 +18,7 @@ DATASET_NAME = "adult"
 PRETRAINED_CAE = "cae_adult_09262023_mps"
 LABELS = ['income']
 Epoch = 300
+DEBUG = False
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CLI')
@@ -30,6 +31,7 @@ if __name__ == '__main__':
                         help='A tag to identify the dataset (dataset name)')
     parser.add_argument('--pretrained_cae', type=str, default=PRETRAINED_CAE, help='CAE pretrained model name')
     parser.add_argument('--labels', type=ast.literal_eval, default=LABELS, help='A list of labels for classifier')
+    parser.add_argument('--debug', type=bool, default=DEBUG, help='Use wandb for debugging purposes')
     args = parser.parse_args()
     Epoch = args.epochs
     TRAIN_TYPE = args.train_type
@@ -39,6 +41,7 @@ if __name__ == '__main__':
     DATASET_NAME = args.dataset_name
     PRETRAINED_CAE = args.pretrained_cae
     LABELS = args.labels
+    DEBUG = args.debug
 
     discrete_columns = get_discrete_columns(METADATA_PATH)
     real_data = read_csv(DATA_PATH)
@@ -52,19 +55,19 @@ if __name__ == '__main__':
         noise_generator = NoiseGenerator(model_path=cae_model_path, input_size=data_dim, device=DEVICE)
 
         ctgan = CTGAN(transformer=transformer, data_dim=data_dim, epochs=Epoch, verbose=True,
-                      noise_generator=noise_generator, device=DEVICE, dataset=DATASET_NAME)
+                      noise_generator=noise_generator, device=DEVICE, dataset=DATASET_NAME, is_wandb=DEBUG)
         ctgan.fit(real_data, discrete_columns, LABELS)
         synthetic_data = ctgan.sample(20)
         print(synthetic_data)
 
     elif TRAIN_TYPE == 'gan':
         ctgan = CTGAN(transformer=transformer, data_dim=data_dim, epochs=Epoch, verbose=True, device=DEVICE,
-                      dataset=DATASET_NAME)
+                      dataset=DATASET_NAME, is_wandb=DEBUG)
         ctgan.fit(real_data, discrete_columns, LABELS)
         synthetic_data = ctgan.sample(20)
         print(synthetic_data)
 
     elif TRAIN_TYPE == 'cae':
         cae = CAETrain(transformer=transformer, data_dim=data_dim, epochs=Epoch, verbose=True, device=DEVICE,
-                       dataset=DATASET_NAME)
+                       dataset=DATASET_NAME, is_wandb=DEBUG)
         model = cae.fit(real_data, discrete_columns)
