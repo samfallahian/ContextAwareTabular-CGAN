@@ -8,7 +8,7 @@ from trainers.gan_sampler import CTGAN
 from helpers.noise_generator_full import NoiseGenerator
 import ast
 
-TRAIN_TYPE = "vanilla"  # gan or vanilla
+TRAIN_TYPE = "gan"  # gan or cae_gan
 DATA_PATH = "dataset_test/adult/adult.csv"
 METADATA_PATH = "dataset_test/adult/meta_data.json"
 DEVICE = get_device()
