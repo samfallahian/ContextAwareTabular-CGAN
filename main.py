@@ -17,9 +17,11 @@ DEVICE = get_device()
 DATASET_NAME = "adult"
 PRETRAINED_CAE = "cae_adult_09262023_mps"
 LABELS = ['income']
+Epoch = 300
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CLI')
+    parser.add_argument('--epochs', type=int, default=Epoch, help='Training epochs')
     parser.add_argument('--train_type', type=str, default=TRAIN_TYPE, help='Type of training (cae, cae_gan, gan)')
     parser.add_argument('--data_path', type=str, default=DATA_PATH, help='Path to the data file')
     parser.add_argument('--metadata_path', type=str, default=METADATA_PATH, help='Path to the metadata file')
@@ -29,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrained_cae', type=str, default=PRETRAINED_CAE, help='CAE pretrained model name')
     parser.add_argument('--labels', type=ast.literal_eval, default=LABELS, help='A list of labels for classifier')
     args = parser.parse_args()
+    Epoch = args.epochs
     TRAIN_TYPE = args.train_type
     DATA_PATH = args.data_path
     METADATA_PATH = args.metadata_path
