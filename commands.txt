@@ -1,2 +1,2 @@
-parallel python main.py --train_type cae --data_path dataset_test/AirQuality/AirQuality_final.csv --metadata_path dataset_test/AirQuality/meta_data.json --dataset_name --labels "['year','month']" > output1.log
-parallel python main.py --device cpu --epochs 200 > output2.log
+python main.py --train_type cae --data_path dataset_test/AirQuality/AirQuality_final.csv --metadata_path dataset_test/AirQuality/meta_data.json --dataset_name AirQuality --labels "['year','month']" > output1.log
+python main.py --device cpu --epochs 200 > output2.log
