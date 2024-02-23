@@ -13,17 +13,33 @@ import pandas as pd
 import numpy as np
 import warnings
 from torch import optim
+import wandb
 
 
 class CTGAN(BaseModel):
     def __init__(self, transformer, data_dim, noise_generator=None, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
-                 discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
+                 discriminator_decay=1e-6, batch_size=500, discriminator_steps=1, is_wandb=False,
                  log_frequency=True, verbose=False, epochs=300, pac=10, device='cpu',
                  save_directory='saved_models', save_interval=50, dataset=None):
         super(CTGAN, self).__init__()
 
         assert batch_size % 2 == 0
+
+        self.is_wandb = is_wandb
+
+        if is_wandb:
+            wandb.init(project='cactgan',
+                       name=f"CAE-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}",
+                       config={
+                           "learning_rate": generator_lr,
+                           "learning_rate_decay": generator_decay,
+                           "batch_size": batch_size,
+                           "dataset": dataset,
+                           "epochs": epochs,
+                       }
+                       )
+
         self._embedding_dim = None
         self._data_dim = data_dim
         self._generator_dim = generator_dim
@@ -363,6 +379,10 @@ class CTGAN(BaseModel):
                       f'Running Loss G: {running_loss_g: .4f}, Running Loss G C: {running_loss_g_sol: .4f}',
                       f'Running Loss C: {running_loss_c: .4f}',
                       flush=True)
+            if self.is_wandb:
+                wandb.log({"Generator_loss": loss_g.detach().cpu(), "Discriminator_loss": loss_d.detach().cpu(),
+                           "Running_Discriminator_loss": running_loss_d, "Running_Generator_loss":running_loss_g,
+                           "Running_Generator_loss_mae":running_loss_g_sol, "Running_Classifier_loss":running_loss_c})
 
             self.df_result.loc[len(self.df_result.index)] = [i + 1, loss_g.item(), loss_d.item(), running_loss_d,
                                                              running_loss_g, datetime.now()]
@@ -370,6 +390,9 @@ class CTGAN(BaseModel):
             # if (i + 1) % self.save_interval == 0:
             #     torch.save(self._generator.state_dict(), os.path.join(self.save_directory,
             #                                                           f"generator_checkpoint_{i + 1}_{self.dataset}_{datetime.now().date().strftime('%m%d%Y')}_{self._device}.pth"))
+
+        if self.is_wandb:
+            wandb.finish()
 
         if self.save_directory:
             # Save the final trained model

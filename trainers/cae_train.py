@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from torch import optim
 import torch.nn.functional as F
+import wandb
 
 
 class CAETrain(BaseModel):
@@ -50,10 +51,22 @@ class CAETrain(BaseModel):
 
     def __init__(self, transformer, data_dim, hidden_size=256, latent_size=64, lr=1e-3, optim_decay=1e-6,
                  batch_size=500, contractive_weight=0.25, beta=0.25, log_frequency=True, verbose=False, epochs=300,
-                 device='cpu', save_directory='saved_models', dataset=None, *args, **kwargs):
+                 device='cpu', save_directory='saved_models', dataset=None, is_wandb=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         assert batch_size % 2 == 0
+
+        self.is_wandb = is_wandb
+
+        if is_wandb:
+            wandb.init(project='cactgan', name=f"CAE-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}",
+                       config={
+                           "learning_rate": lr,
+                           "batch_size": batch_size,
+                           "dataset": dataset,
+                           "epochs": epochs,
+                       }
+                       )
 
         self._data_dim = data_dim
 
@@ -75,7 +88,7 @@ class CAETrain(BaseModel):
 
         self._device = torch.device(device)
 
-        self.save_directory = save_directory+"/cae/"+dataset
+        self.save_directory = save_directory + "/cae/" + dataset
         self.dataset = dataset
         if save_directory:
             os.makedirs(self.save_directory, exist_ok=True)  # Create the save directory if it doesn't exist
@@ -196,7 +209,11 @@ class CAETrain(BaseModel):
             if self._verbose:
                 print(f'Epoch {i + 1}, Loss: {running_loss: .4f},',
                       flush=True)
+            if self.is_wandb:
+                wandb.log({"loss": running_loss})
 
+        if self.is_wandb:
+            wandb.finish()
         if self.save_directory:
             # Save the final trained model
             torch.save(cae_model.state_dict(), os.path.join(self.save_directory,
