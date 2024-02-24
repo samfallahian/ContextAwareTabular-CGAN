@@ -30,7 +30,7 @@ class CTGAN(BaseModel):
 
         if is_wandb:
             wandb.init(project='cactgan',
-                       name=f"CAE-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}",
+                       name=f"CACTGAN-{noise_generator}-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}",
                        config={
                            "learning_rate": generator_lr,
                            "learning_rate_decay": generator_decay,
