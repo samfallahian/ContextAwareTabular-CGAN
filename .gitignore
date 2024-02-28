@@ -131,3 +131,5 @@ dmypy.json
 evaluation
 dataset_test
 results
+local_saved_model
+local_playground
