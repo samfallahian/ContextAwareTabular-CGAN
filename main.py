@@ -10,7 +10,7 @@ from helpers.noise_generator_full import NoiseGenerator
 import ast
 
 
-TRAIN_TYPE = "gan"  # cae or gan or cae_gan
+TRAIN_TYPE = "cae_gan"  # cae or gan or cae_gan
 DATA_PATH = "dataset_test/adult/adult.csv"
 METADATA_PATH = "dataset_test/adult/meta_data.json"
 DEVICE = get_device()
