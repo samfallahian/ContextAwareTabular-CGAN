@@ -207,7 +207,7 @@ class CAETrain(BaseModel):
                 self.df_result.loc[len(self.df_result.index)] = [i + 1, id_ + 1, loss.item(), datetime.now()]
             running_loss /= steps_per_epoch
             if self._verbose:
-                print(f'Epoch {i + 1}, Loss: {running_loss: .4f},',
+                print(f'Epoch {i + 1}, Loss: {running_loss: .4f}, Time: {datetime.now()}',
                       flush=True)
             if self.is_wandb:
                 wandb.log({"loss": running_loss})
