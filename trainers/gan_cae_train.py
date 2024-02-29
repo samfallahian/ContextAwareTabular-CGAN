@@ -202,7 +202,7 @@ class CTGAN(BaseModel):
         self._validate_discrete_columns(train_data, discrete_columns)
 
         # Classifier features and embedding layers
-        num_feature_no, emb_dims = embedding_dim.cal_dim(train_data, discrete_columns, label)
+        num_feature_no, emb_dims, output_sizes = embedding_dim.cal_dim(train_data, discrete_columns, label)
 
         train_data = self._transformer.transform(train_data)
 
@@ -219,13 +219,13 @@ class CTGAN(BaseModel):
             self._data_dim
         ).to(self._device)
 
-        self._classifier = ClassifierModel(emb_dims, num_feature_no)
+        self._classifier = ClassifierModel(emb_dims, num_feature_no, output_sizes)
         self._classifier_data_handler = ClassifierDataTransformer(discrete_columns, label)
 
         # Use BCEWithLogitsLoss for binary classification
         # For multi-class classification, use CrossEntropyLoss instead:
         # loss_function = nn.CrossEntropyLoss()
-        self.bce_loss = nn.BCEWithLogitsLoss()
+        # self.bce_loss = nn.BCEWithLogitsLoss()
         optimizerC = torch.optim.Adam(self._classifier.parameters(), lr=0.001)
 
 
@@ -324,7 +324,9 @@ class CTGAN(BaseModel):
                 for x_cat_batch, x_num_batch, y_batch in classifier_data:
                     optimizerC.zero_grad(set_to_none=False)
                     outputs_c = self._classifier(x_cat_batch, x_num_batch)
-                    loss_c = self.bce_loss(outputs_c, y_batch)
+                    # loss_c = self.bce_loss(outputs_c, y_batch)
+                    losses_c = [F.cross_entropy(out, target) for out, target in zip(outputs_c[0], y_batch.squeeze(1).long())]
+                    loss_c = torch.mean(torch.stack(losses_c))
                     # loss_c.backward()
                     # optimizerC.step()
                 running_loss_c += loss_c.item()
