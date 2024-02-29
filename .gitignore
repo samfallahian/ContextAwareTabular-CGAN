@@ -134,3 +134,5 @@ results
 local_saved_model
 local_playground
 README1.md
+output*.txt
+wandb
