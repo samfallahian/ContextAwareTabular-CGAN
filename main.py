@@ -7,7 +7,7 @@ from trainers.cae_train import CAETrain
 from helpers.noise_generator_full import NoiseGenerator
 import ast
 
-DEFAULT_TRAIN_TYPE = "cae"
+DEFAULT_TRAIN_TYPE = "cae_gan"
 DEFAULT_DATA_PATH = "dataset_test/adult/adult.csv"
 DEFAULT_METADATA_PATH = "dataset_test/adult/meta_data.json"
 DEFAULT_DEVICE = get_device()
