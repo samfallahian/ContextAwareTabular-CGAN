@@ -11,6 +11,5 @@ def cal_dim(df, categorical_columns, labels):
     emb_dims = [(size, min(50, (size + 1) // 2)) for size in cat_dims]
     num_feature_no = X_num.shape[1]
     output_sizes = [df[label].nunique() for label in labels]
-    print("output_sizes", output_sizes)
 
     return num_feature_no, emb_dims, output_sizes
