@@ -32,7 +32,7 @@ def main(epochs, train_type, data_path, metadata_path, device, dataset_name, pre
     - dataset_name (str): The name of the dataset.
     - pretrained_cae (bool): Indicates whether to use a pre-trained CAE model.
     - labels (list): A list of labels for the data.
-    - debug (bool): Indicates whether to enable debug mode.
+    - debug (bool): Indicates whether to enable wandb debug mode.
 
     Returns:
     - None
@@ -58,7 +58,7 @@ def main(epochs, train_type, data_path, metadata_path, device, dataset_name, pre
     elif train_type == 'cae':
         cae = CAETrain(transformer=transformer, data_dim=data_dim, epochs=epochs, verbose=True, device=device,
                        dataset=dataset_name, is_wandb=debug)
-        model = cae.fit(real_data, discrete_columns)
+        cae.fit(real_data, discrete_columns)
 
 
 if __name__ == '__main__':
