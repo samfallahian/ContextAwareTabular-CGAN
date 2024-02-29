@@ -79,10 +79,6 @@ class CTGAN(BaseModel):
     @staticmethod
     def _gumbel_softmax(logits, tau=1, hard=False, eps=1e-10, dim=-1):
         """Deals with the instability of the gumbel_softmax for older versions of torch.
-
-        For more details about the issue:
-        https://drive.google.com/file/d/1AA5wPfZ1kquaRtVruCd6BiYZGcDeNxyP/view?usp=sharing
-
         Args:
             logits […, num_features]:
                 Unnormalized log probabilities
@@ -265,6 +261,9 @@ class CTGAN(BaseModel):
                         fakez = torch.normal(mean=mean, std=std)
                     else:
                         fakez = self._noise_generator.forward(n_samples=self._batch_size).to(self._device)
+                        new_min = -3
+                        new_max = 3
+                        fakez = (fakez - fakez.min()) * (new_max - new_min) / (fakez.max() - fakez.min()) + new_min
 
                     condvec = self._data_sampler.sample_condvec(self._batch_size)
                     if condvec is None:
@@ -338,6 +337,9 @@ class CTGAN(BaseModel):
                     fakez = torch.normal(mean=mean, std=std)
                 else:
                     fakez = self._noise_generator.forward(n_samples=self._batch_size).to(self._device)
+                    new_min = -3
+                    new_max = 3
+                    fakez = (fakez - fakez.min()) * (new_max - new_min) / (fakez.max() - fakez.min()) + new_min
 
                 condvec = self._data_sampler.sample_condvec(self._batch_size)
 
@@ -379,7 +381,7 @@ class CTGAN(BaseModel):
                 print(f'Epoch {i + 1}, Loss G: {loss_g.detach().cpu(): .4f},'
                       f'Loss D: {loss_d.detach().cpu(): .4f}, Running Loss D: {running_loss_d: .4f}',
                       f'Running Loss G: {running_loss_g: .4f}, Running Loss G C: {running_loss_g_sol: .4f}',
-                      f'Running Loss C: {running_loss_c: .4f}',
+                      f'Running Loss C: {running_loss_c: .4f}', f'Time: {datetime.now()}',
                       flush=True)
             if self.is_wandb:
                 wandb.log({"Generator_loss": loss_g.detach().cpu(), "Discriminator_loss": loss_d.detach().cpu(),
