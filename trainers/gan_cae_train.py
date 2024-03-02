@@ -17,7 +17,8 @@ import wandb
 
 
 class CTGAN(BaseModel):
-    def __init__(self, transformer, data_dim, noise_generator=None, generator_dim=(256, 256), discriminator_dim=(256, 256),
+    def __init__(self, transformer, data_dim, noise_generator=None, generator_dim=(256, 256),
+                 discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1, is_wandb=False,
                  log_frequency=True, verbose=False, epochs=300, pac=10, device='cpu',
@@ -29,8 +30,15 @@ class CTGAN(BaseModel):
         self.is_wandb = is_wandb
 
         if is_wandb:
-            wandb.init(project='cactgan',
-                       name=f"CACTGAN-{noise_generator}-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}",
+            if self._noise_generator is None:
+                wan_project = "cactgan_gan"
+                wan_name = f"CTGAN-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}"
+            else:
+                wan_project = "cactgan_cae_gan"
+                wan_name = f"CACTGAN-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}"
+
+            wandb.init(project=wan_project,
+                       name=wan_name,
                        config={
                            "learning_rate": generator_lr,
                            "learning_rate_decay": generator_decay,
@@ -63,7 +71,7 @@ class CTGAN(BaseModel):
         self._device = torch.device(device)
 
         self.save_interval = save_interval
-        self.save_directory = save_directory+"/gan/"+dataset
+        self.save_directory = save_directory + "/gan/" + dataset
         self.dataset = dataset
         if save_directory:
             os.makedirs(self.save_directory, exist_ok=True)  # Create the save directory if it doesn't exist
@@ -224,7 +232,6 @@ class CTGAN(BaseModel):
         # self.bce_loss = nn.BCEWithLogitsLoss()
         optimizerC = torch.optim.Adam(self._classifier.parameters(), lr=0.001)
 
-
         discriminator = Discriminator(
             self._data_dim + self._data_sampler.dim_cond_vec(),
             self._discriminator_dim,
@@ -324,7 +331,8 @@ class CTGAN(BaseModel):
                     optimizerC.zero_grad(set_to_none=False)
                     outputs_c = self._classifier(x_cat_batch, x_num_batch)
                     # loss_c = self.bce_loss(outputs_c, y_batch)
-                    losses_c = [F.cross_entropy(out, target) for out, target in zip(outputs_c[0], y_batch.squeeze(1).long())]
+                    losses_c = [F.cross_entropy(out, target) for out, target in
+                                zip(outputs_c[0], y_batch.squeeze(1).long())]
                     loss_c = torch.mean(torch.stack(losses_c))
                     # loss_c.backward()
                     # optimizerC.step()
@@ -363,7 +371,8 @@ class CTGAN(BaseModel):
                     cross_entropy = 0
                 else:
                     cross_entropy = self._cond_loss(fake, c1, m1)
-                loss_g = -torch.mean(y_fake) + cross_entropy + torch.tensor(loss_c.item(), device=self._device,  requires_grad=True)
+                loss_g = -torch.mean(y_fake) + cross_entropy + torch.tensor(loss_c.item(), device=self._device,
+                                                                            requires_grad=True)
                 running_loss_g += abs((-torch.mean(y_fake) + cross_entropy).item())
                 running_loss_g_sol += abs(torch.mean(y_fake).item())
                 loss_c.backward()
@@ -385,8 +394,8 @@ class CTGAN(BaseModel):
                       flush=True)
             if self.is_wandb:
                 wandb.log({"Generator_loss": loss_g.detach().cpu(), "Discriminator_loss": loss_d.detach().cpu(),
-                           "Running_Discriminator_loss": running_loss_d, "Running_Generator_loss":running_loss_g,
-                           "Running_Generator_loss_mae":running_loss_g_sol, "Running_Classifier_loss":running_loss_c})
+                           "Running_Discriminator_loss": running_loss_d, "Running_Generator_loss": running_loss_g,
+                           "Running_Generator_loss_mae": running_loss_g_sol, "Running_Classifier_loss": running_loss_c})
 
             self.df_result.loc[len(self.df_result.index)] = [i + 1, loss_g.item(), loss_d.item(), running_loss_d,
                                                              running_loss_g, datetime.now()]
