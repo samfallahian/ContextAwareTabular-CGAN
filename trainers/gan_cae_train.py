@@ -30,7 +30,7 @@ class CTGAN(BaseModel):
         self.is_wandb = is_wandb
 
         if is_wandb:
-            if self._noise_generator is None:
+            if noise_generator is None:
                 wan_project = "cactgan_gan"
                 wan_name = f"CTGAN-{dataset}-{datetime.now().date().strftime('%m-%d-%Y')}-{int(datetime.now().timestamp())}"
             else:
