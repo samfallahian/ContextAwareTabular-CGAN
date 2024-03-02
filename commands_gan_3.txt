@@ -1,0 +1,2 @@
+python main.py --epochs 300 --train_type gan --data_path dataset_test/HAR70/final.csv --metadata_path dataset_test/HAR70/meta_data.json --debug True --dataset_name HAR70 --labels "['label']" > output_HAR70_GAN.log
+python main.py --epochs 300 --train_type gan --data_path dataset_test/BankMarketing/bank-final.csv --metadata_path dataset_test/BankMarketing/meta_data.json --debug True --dataset_name BankMarketing --labels "['y']" > output_BankMarketing_GAN.log
