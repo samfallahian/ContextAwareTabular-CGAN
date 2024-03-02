@@ -1,0 +1,2 @@
+python main.py --epochs 300 --train_type gan --data_path dataset_test/WeatherDataset/weatherHistory_final.csv --metadata_path dataset_test/WeatherDataset/meta_data.json --debug True --dataset_name Weather --labels "['month']" > output_Weather_GAN.log
+python main.py --epochs 300 --train_type gan --data_path dataset_test/HouseholdPowerConsumption/household_power_consumption_final.csv --metadata_path dataset_test/HouseholdPowerConsumption/meta_data.json --debug True --dataset_name PowerConsumption --labels "['month']" > output_PowerConsumption_GAN.log
