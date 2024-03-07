@@ -1,1 +1,0 @@
-python main.py --epochs 350 --train_type cae --data_path dataset_test/HouseholdPowerConsumption/household_power_consumption_final.csv --metadata_path dataset_test/HouseholdPowerConsumption/meta_data.json --debug True --dataset_name PowerConsumption --labels "['month']" > output_PowerConsumption.log
