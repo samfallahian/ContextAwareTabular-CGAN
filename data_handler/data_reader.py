@@ -6,7 +6,7 @@ import pandas as pd
 
 def read_csv(csv_filename, header=True):
     """Read a csv file."""
-    data = pd.read_csv(csv_filename, header='infer' if header else None)
+    data = pd.read_csv(csv_filename,low_memory=False, header='infer' if header else None)
     return data
 
 
