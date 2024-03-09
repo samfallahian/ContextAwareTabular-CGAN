@@ -71,7 +71,11 @@ class CTGAN(BaseModel):
         self._device = torch.device(device)
 
         self.save_interval = save_interval
-        self.save_directory = save_directory + "/gan/" + dataset
+
+        if self._noise_generator is None:
+            self.save_directory = save_directory + "/gan/" + dataset
+        else:
+            self.save_directory = save_directory + "/cae_gan/" + dataset
         self.dataset = dataset
         if save_directory:
             os.makedirs(self.save_directory, exist_ok=True)  # Create the save directory if it doesn't exist
