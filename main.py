@@ -7,14 +7,14 @@ from trainers.cae_train import CAETrain
 from helpers.noise_generator_full import NoiseGenerator
 import ast
 
-DEFAULT_TRAIN_TYPE = "cae_gan"
-DEFAULT_DATA_PATH = "dataset_test/adult/adult.csv"
-DEFAULT_METADATA_PATH = "dataset_test/adult/meta_data.json"
+DEFAULT_TRAIN_TYPE = "cae"
+DEFAULT_DATA_PATH = "dataset_test/HouseholdPowerConsumption/household_power_consumption_final.csv"
+DEFAULT_METADATA_PATH = "dataset_test/HouseholdPowerConsumption/meta_data.json"
 DEFAULT_DEVICE = get_device()
-DEFAULT_DATASET_NAME = "adult"
+DEFAULT_DATASET_NAME = "PowerConsumption"
 DEFAULT_PRETRAINED_CAE = "cae_adult_09262023_mps"
-DEFAULT_LABELS = ['income']
-DEFAULT_EPOCHS = 300
+DEFAULT_LABELS = ['month']
+DEFAULT_EPOCHS = 50
 DEFAULT_DEBUG = False
 
 
@@ -25,7 +25,7 @@ def main(epochs, train_type, data_path, metadata_path, device, dataset_name, pre
 
     Parameters:
     - epochs (int): The number of epochs to train the model.
-    - train_type (str): The type of training to perform. Supported values are 'cae_gan', 'gan', and 'cae'.
+    - train_type (str): The type of training to perform. Supported values are 'gan', and 'cae'.
     - data_path (str): The path to the data file.
     - metadata_path (str): The path to the metadata file.
     - device (str): The device on which to run the model (e.g., 'cpu', 'cuda').
@@ -43,11 +43,9 @@ def main(epochs, train_type, data_path, metadata_path, device, dataset_name, pre
     transformer = DataTransformer()
     transformer.fit(real_data, discrete_columns)
     data_dim = transformer.output_dimensions
-    if train_type == 'cae_gan' or train_type == 'gan':
-        noise_generator = None
-        if train_type == 'cae_gan':
-            cae_model_path = get_model_path("cae", dataset_name, pretrained_cae)
-            noise_generator = NoiseGenerator(model_path=cae_model_path, input_size=data_dim, device=device)
+    if train_type == 'gan':
+        cae_model_path = get_model_path("cae", dataset_name, pretrained_cae)
+        noise_generator = NoiseGenerator(model_path=cae_model_path, input_size=data_dim, device=device)
 
         ctgan = CTGAN(transformer=transformer, data_dim=data_dim, epochs=epochs, verbose=True,
                       noise_generator=noise_generator, device=device, dataset=dataset_name, is_wandb=debug)
