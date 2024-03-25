@@ -86,7 +86,7 @@ class CTGAN(BaseModel):
         self._data_sampler = None
         self._generator = None
         self._classifier = None
-        self._noise_generator = noise_generator
+        self._noise_generator = None # noise_generator
 
     @staticmethod
     def _gumbel_softmax(logits, tau=1, hard=False, eps=1e-10, dim=-1):
@@ -452,12 +452,12 @@ class CTGAN(BaseModel):
         for i in range(steps):
             mean = torch.zeros(self._batch_size, self._embedding_dim)
             std = mean + 1
-            fakez = torch.normal(mean=mean, std=std).to(self._device)
+            # fakez = torch.normal(mean=mean, std=std).to(self._device)
 
-            # if self._noise_generator is None:
-            #     fakez = torch.normal(mean=mean, std=std)
-            # else:
-            #     fakez = self._noise_generator.forward(n_samples=self._batch_size).to(self._device)
+            if self._noise_generator is None:
+                fakez = torch.normal(mean=mean, std=std)
+            else:
+                fakez = self._noise_generator.forward(n_samples=self._batch_size).to(self._device)
 
             if global_condition_vec is not None:
                 condvec = global_condition_vec.copy()
